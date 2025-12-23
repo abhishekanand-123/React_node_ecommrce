@@ -114,9 +114,6 @@ app.post("/save-transaction", async (req, res) => {
     const email = session.customer_details?.email;
     const status = session.payment_status;
 
-
-    //this is abhi coide
-
     // 1️⃣ Save transaction
     db.query(
       `INSERT INTO transactions (user_id, transaction_id, amount, currency, email, status)
