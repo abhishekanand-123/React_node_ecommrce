@@ -1,8 +1,13 @@
+/* ===== FOOTER ===== */
 .footer {
-  background: #222;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
   color: white;
   text-align: center;
-  padding: 20px;
-  margin-top: 40px;
-  font-size: 0.9rem;
+  padding: 25px 20px;
+  font-size: 0.95rem;
+}
+
+.footer p {
+  opacity: 0.9;
+  margin: 0;
 }

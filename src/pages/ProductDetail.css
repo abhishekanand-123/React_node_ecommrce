@@ -1,40 +1,76 @@
+/* ===== PRODUCT DETAIL PAGE ===== */
 .product-detail-container {
   display: flex;
-  gap: 30px;
+  gap: 40px;
   padding: 40px;
+  max-width: 1200px;
+  margin: 30px auto;
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 5px 25px rgba(0, 0, 0, 0.1);
 }
 
 .left {
-  width: 40%;
+  flex: 1;
+  max-width: 500px;
 }
 
 .detail-image {
   width: 100%;
-  border: 1px solid #ddd;
-  padding: 10px;
-  border-radius: 6px;
+  border-radius: 10px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
 .right {
-  width: 60%;
+  flex: 1;
+  padding: 20px 0;
+}
+
+.right h2 {
+  font-size: 2rem;
+  color: #333;
+  margin-bottom: 15px;
 }
 
 .price {
-  font-size: 26px;
-  color: #c45500;
-  font-weight: bold;
+  font-size: 1.8rem;
+  color: #e67e22;
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+.description {
+  font-size: 1.1rem;
+  color: #666;
+  line-height: 1.6;
+  margin-bottom: 30px;
 }
 
 .add-btn {
-  background: #ff9900;
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
   border: none;
-  padding: 14px 20px;
-  font-size: 18px;
+  padding: 16px 40px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: white;
   cursor: pointer;
-  border-radius: 6px;
-  margin-top: 20px;
+  border-radius: 50px;
+  transition: all 0.3s ease;
 }
 
 .add-btn:hover {
-  background: #f90;
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(238, 90, 36, 0.4);
+}
+
+@media (max-width: 768px) {
+  .product-detail-container {
+    flex-direction: column;
+    margin: 20px;
+    padding: 25px;
+  }
+
+  .left, .right {
+    max-width: 100%;
+  }
 }

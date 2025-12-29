@@ -85,9 +85,13 @@ function CartPage() {
               <tr key={item.cart_id}>
                 <td>
                   <img
-                    src={`http://localhost:5000/uploads/${item.image}`}
+                    src={item.image ? `http://localhost:5000/uploads/${item.image.replace(/^\/+/, '').replace(/^uploads\//, '')}` : 'https://via.placeholder.com/80x80?text=No+Image'}
                     alt={item.title}
                     className="cart-img"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = 'https://via.placeholder.com/80x80?text=No+Image';
+                    }}
                   />
                 </td>
 

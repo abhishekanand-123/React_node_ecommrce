@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import "./ProductDetail.css";
 
 function ProductDetail() {
   const { id } = useParams();
@@ -12,7 +13,19 @@ function ProductDetail() {
       .then((data) => setProduct(data));
   }, [id]);
 
-  if (!product) return <h2>Loading...</h2>;
+  if (!product) return <div className="loading">Loading...</div>;
+
+  // Handle image URL
+  const getImageUrl = () => {
+    if (!product.image) {
+      return 'https://via.placeholder.com/500x400?text=No+Image';
+    }
+    if (product.image.startsWith('http')) {
+      return product.image;
+    }
+    let imageName = product.image.replace(/^\/+/, '').replace(/^uploads\//, '');
+    return `http://localhost:5000/uploads/${imageName}`;
+  };
 
   const addToCart = async () => {
     const res = await fetch("http://localhost:5000/cart/add", {
@@ -37,16 +50,20 @@ function ProductDetail() {
 
       <div className="left">
         <img
-          src={`http://localhost:5000/uploads/${product.image}`}
+          src={getImageUrl()}
           alt={product.title}
           className="detail-image"
+          onError={(e) => {
+            e.target.onerror = null;
+            e.target.src = 'https://via.placeholder.com/500x400?text=No+Image';
+          }}
         />
       </div>
 
       <div className="right">
         <h2>{product.title}</h2>
-        <p className="price">₹{product.price}</p>
-        <p>{product.description}</p>
+        <p className="price">₹ {(parseFloat(product.price) || 0).toFixed(2)}</p>
+        <p className="description">{product.description}</p>
 
         <button className="add-btn" onClick={addToCart}>
           Add to Cart

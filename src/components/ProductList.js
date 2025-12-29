@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import ProductCard from "./ProductCard";
+import "./ProductList.css";
 
 const PAGE_SIZE = 6;
 
