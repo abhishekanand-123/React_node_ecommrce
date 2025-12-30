@@ -9,6 +9,10 @@ const Login_user = () => {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  // Check if there's a pending cart product
+  const pendingProduct = localStorage.getItem('pendingCartProduct');
+  const pendingProductData = pendingProduct ? JSON.parse(pendingProduct) : null;
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -37,8 +41,34 @@ const Login_user = () => {
         // Store user info in localStorage
         localStorage.setItem('user', JSON.stringify(data.user));
         localStorage.setItem('user_id', data.user.id);
-        alert('Login successful!');
-        navigate('/');
+        
+        // Dispatch event to update Header
+        window.dispatchEvent(new Event('userLogin'));
+        
+        // Check if there's a pending product to add to cart
+        const pendingProduct = localStorage.getItem('pendingCartProduct');
+        if (pendingProduct) {
+          const productData = JSON.parse(pendingProduct);
+          
+          // Add product to cart automatically
+          const cartRes = await fetch('http://localhost:5000/cart/add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              user_id: data.user.id,
+              product_id: productData.product_id,
+              qty: 1
+            })
+          });
+          
+          const cartData = await cartRes.json();
+          localStorage.removeItem('pendingCartProduct');
+          alert(`Login successful! "${productData.product_title}" added to cart!`);
+          navigate('/cart');
+        } else {
+          alert('Login successful!');
+          navigate('/');
+        }
       } else {
         setError(data.message || 'Login failed');
       }
@@ -63,6 +93,11 @@ const Login_user = () => {
         </h6>
 
         <form onSubmit={handleSubmit}>
+          {pendingProductData && (
+            <div className="auth-notice">
+              🛒 Login to add "<strong>{pendingProductData.product_title}</strong>" to your cart
+            </div>
+          )}
           {error && <div className="auth-error">{error}</div>}
           
           <div className="auth-form-group">
@@ -244,6 +279,16 @@ const Login_user = () => {
         .auth-btn:disabled {
           opacity: 0.7;
           cursor: not-allowed;
+        }
+        .auth-notice {
+          background: #e8f5e9;
+          color: #2e7d32;
+          padding: 12px;
+          border-radius: 4px;
+          margin-bottom: 20px;
+          font-size: 14px;
+          text-align: center;
+          border: 1px solid #a5d6a7;
         }
       `}</style>
     </div>

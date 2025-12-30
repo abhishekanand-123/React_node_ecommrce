@@ -154,22 +154,39 @@
 
 
 
-import React from "react";
-import { useLocation } from "react-router-dom";
+import React, { useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import "./Checkout.css";
 
 function Checkout() {
   const location = useLocation();
+  const navigate = useNavigate();
   const totalAmount = location.state?.totalAmount || 0;
+  const userId = localStorage.getItem('user_id');
+
+  useEffect(() => {
+    // Check if user is logged in
+    if (!userId) {
+      alert('Please login to proceed with checkout');
+      localStorage.setItem('redirectAfterLogin', '/cart');
+      navigate('/login');
+    }
+  }, [userId, navigate]);
 
   const handleStripePayment = async () => {
+    if (!userId) {
+      alert('Please login first');
+      navigate('/login');
+      return;
+    }
+
     try {
       const response = await fetch(
         "http://localhost:5000/create-checkout-session",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ amount: totalAmount }),
+          body: JSON.stringify({ amount: totalAmount, user_id: userId }),
         }
       );
 

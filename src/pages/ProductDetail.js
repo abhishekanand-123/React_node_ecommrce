@@ -15,11 +15,25 @@ function ProductDetail() {
   if (!product) return <h2>Loading...</h2>;
 
   const addToCart = async () => {
+    // Check if user is logged in
+    const userId = localStorage.getItem('user_id');
+    
+    if (!userId) {
+      // Save product info to add to cart after login
+      localStorage.setItem('pendingCartProduct', JSON.stringify({
+        product_id: product.id,
+        product_title: product.title
+      }));
+      alert('Please login first to add items to cart');
+      navigate('/login');
+      return;
+    }
+
     const res = await fetch("http://localhost:5000/cart/add", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        user_id: 1,
+        user_id: userId,
         product_id: product.id,
         qty: 1,
       }),

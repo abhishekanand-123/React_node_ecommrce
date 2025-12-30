@@ -4,19 +4,31 @@ import { useNavigate } from "react-router-dom";
 
 function CartPage() {
   const [items, setItems] = useState([]);
-  const userId = 1;
   const navigate = useNavigate();
+  
+  // Get user ID from localStorage
+  const userId = localStorage.getItem('user_id');
 
   // Get Cart Items
   const loadCart = async () => {
+    if (!userId) {
+      return;
+    }
     const res = await fetch(`http://localhost:5000/cart/${userId}`);
     const data = await res.json();
     setItems(data);
   };
 
   useEffect(() => {
+    // Check if user is logged in
+    if (!userId) {
+      alert('Please login to view your cart');
+      localStorage.setItem('redirectAfterLogin', '/cart');
+      navigate('/login');
+      return;
+    }
     loadCart();
-  }, []);
+  }, [userId, navigate]);
 
   // Update Quantity
   const updateQty = async (cart_id, currentQty, type) => {
