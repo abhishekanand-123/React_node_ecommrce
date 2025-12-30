@@ -7,8 +7,13 @@ export default function Home() {
   useEffect(() => {
     fetch("http://localhost:5000/testimonials")
       .then((res) => res.json())
-      .then((data) => setTestimonials(data))
-      .catch((err) => console.log(err));
+      .then((data) => {
+        // Make sure data is an array before setting
+        if (Array.isArray(data)) {
+          setTestimonials(data);
+        }
+      })
+      .catch((err) => console.log("Error fetching testimonials:", err));
   }, []);
 
   return (
@@ -21,13 +26,17 @@ export default function Home() {
 
         <div className="testimonial-list">
 
-          {testimonials.map((item) => (
-            <div className="testimonial-card" key={item.id}>
-              <img src={item.image} alt="Client" />
-              <p>“{item.message}”</p>
-              <h4>- {item.name}</h4>
-            </div>
-          ))}
+          {testimonials && testimonials.length > 0 ? (
+            testimonials.map((item) => (
+              <div className="testimonial-card" key={item.id}>
+                <img src={item.image} alt="Client" />
+                <p>"{item.message}"</p>
+                <h4>- {item.name}</h4>
+              </div>
+            ))
+          ) : (
+            <p>No testimonials available.</p>
+          )}
 
         </div>
       </section>

@@ -1,7 +1,24 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 
 const Navbar = () => {
+  const navigate = useNavigate();
+  const [admin, setAdmin] = useState(null);
+
+  useEffect(() => {
+    const adminData = localStorage.getItem('admin');
+    if (adminData) {
+      setAdmin(JSON.parse(adminData));
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('admin');
+    localStorage.removeItem('admin_id');
+    alert('Logged out successfully!');
+    navigate('/admin/login');
+  };
+
   return (
     <>
       {/* Top Banner */}
@@ -41,7 +58,9 @@ const Navbar = () => {
           <div className="d-flex align-items-center">
             <div className="navbar-profile d-flex align-items-center me-2">
               <img src="https://randomuser.me/api/portraits/men/1.jpg" alt="profile" style={{ width: '32px', height: '32px', borderRadius: '50%' }} />
-              <span className="ms-2 d-none d-sm-inline" style={{ color: '#1f1f1f', fontWeight: 500, fontSize: '0.875rem' }}>David Greymaax</span>
+              <span className="ms-2 d-none d-sm-inline" style={{ color: '#1f1f1f', fontWeight: 500, fontSize: '0.875rem' }}>
+                {admin ? admin.username : 'Admin'}
+              </span>
               <i className="mdi mdi-chevron-down ms-1" style={{ color: '#8e94a9' }}></i>
             </div>
             <a className="nav-link p-2" href="#" style={{ color: '#8e94a9' }}>
@@ -55,9 +74,14 @@ const Navbar = () => {
               <i className="mdi mdi-bell-outline" style={{ fontSize: '20px' }}></i>
               <span style={{ position: 'absolute', top: '5px', right: '5px', width: '6px', height: '6px', borderRadius: '50%', background: '#fe7c96' }}></span>
             </a>
-            <a className="nav-link p-2" href="#" style={{ color: '#8e94a9' }}>
+            <button 
+              onClick={handleLogout}
+              className="nav-link p-2" 
+              style={{ color: '#ff4444', border: 'none', background: 'transparent', cursor: 'pointer' }}
+              title="Logout"
+            >
               <i className="mdi mdi-power" style={{ fontSize: '20px' }}></i>
-            </a>
+            </button>
             <a className="nav-link p-2" href="#" style={{ color: '#8e94a9' }}>
               <i className="mdi mdi-format-line-spacing" style={{ fontSize: '20px' }}></i>
             </a>

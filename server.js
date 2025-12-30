@@ -197,8 +197,283 @@ app.post("/products", upload.single("image"), (req, res) => {
   );
 });
 
+// Update product
+app.put("/products/:id", upload.single("image"), (req, res) => {
+  const { id } = req.params;
+  const { title, price, description } = req.body;
+  const image = req.file ? req.file.filename : null;
+
+  let query, params;
+  if (image) {
+    query = "UPDATE products SET title = ?, price = ?, description = ?, image = ? WHERE id = ?";
+    params = [title, price, description, image, id];
+  } else {
+    query = "UPDATE products SET title = ?, price = ?, description = ? WHERE id = ?";
+    params = [title, price, description, id];
+  }
+
+  db.query(query, params, (err, result) => {
+    if (err) return res.status(500).json({ message: "DB Error" });
+    res.json({ message: "Product Updated" });
+  });
+});
+
+// Delete product
+app.delete("/products/:id", (req, res) => {
+  const { id } = req.params;
+  db.query("DELETE FROM products WHERE id = ?", [id], (err, result) => {
+    if (err) return res.status(500).json({ message: "DB Error" });
+    res.json({ message: "Product Deleted" });
+  });
+});
+
 // --------------------------------------------
-// 3️⃣ USER REGISTRATION & LOGIN of  gi 2
+// COUPON MANAGEMENT
+// --------------------------------------------
+
+// Get all coupons
+app.get("/coupons", (req, res) => {
+  db.query("SELECT * FROM coupons ORDER BY created_at DESC", (err, result) => {
+    if (err) return res.status(500).json({ message: "DB Error" });
+    res.json(result);
+  });
+});
+
+// Add new coupon
+app.post("/coupons", (req, res) => {
+  const { code, discount_percent, min_amount, max_discount, expiry_date, is_active } = req.body;
+
+  // Check if coupon code already exists
+  db.query("SELECT * FROM coupons WHERE code = ?", [code.toUpperCase()], (err, result) => {
+    if (err) return res.status(500).json({ message: "DB Error" });
+    
+    if (result.length > 0) {
+      return res.status(400).json({ message: "Coupon code already exists" });
+    }
+
+    db.query(
+      "INSERT INTO coupons (code, discount_percent, min_amount, max_discount, expiry_date, is_active) VALUES (?, ?, ?, ?, ?, ?)",
+      [code.toUpperCase(), discount_percent, min_amount || 0, max_discount || null, expiry_date || null, is_active ? 1 : 0],
+      (err, result) => {
+        if (err) return res.status(500).json({ message: "DB Error" });
+        res.json({ message: "Coupon Added", couponId: result.insertId });
+      }
+    );
+  });
+});
+
+// Update coupon
+app.put("/coupons/:id", (req, res) => {
+  const { id } = req.params;
+  const { code, discount_percent, min_amount, max_discount, expiry_date, is_active } = req.body;
+
+  db.query(
+    "UPDATE coupons SET code = ?, discount_percent = ?, min_amount = ?, max_discount = ?, expiry_date = ?, is_active = ? WHERE id = ?",
+    [code.toUpperCase(), discount_percent, min_amount || 0, max_discount || null, expiry_date || null, is_active ? 1 : 0, id],
+    (err, result) => {
+      if (err) return res.status(500).json({ message: "DB Error" });
+      res.json({ message: "Coupon Updated" });
+    }
+  );
+});
+
+// Toggle coupon status
+app.put("/coupons/:id/toggle", (req, res) => {
+  const { id } = req.params;
+  db.query("UPDATE coupons SET is_active = NOT is_active WHERE id = ?", [id], (err, result) => {
+    if (err) return res.status(500).json({ message: "DB Error" });
+    res.json({ message: "Coupon status toggled" });
+  });
+});
+
+// Delete coupon
+app.delete("/coupons/:id", (req, res) => {
+  const { id } = req.params;
+  db.query("DELETE FROM coupons WHERE id = ?", [id], (err, result) => {
+    if (err) return res.status(500).json({ message: "DB Error" });
+    res.json({ message: "Coupon Deleted" });
+  });
+});
+
+// Validate coupon (for checkout)
+app.post("/coupons/validate", (req, res) => {
+  const { code, amount } = req.body;
+
+  db.query(
+    "SELECT * FROM coupons WHERE code = ? AND is_active = 1 AND (expiry_date IS NULL OR expiry_date >= CURDATE())",
+    [code.toUpperCase()],
+    (err, result) => {
+      if (err) return res.status(500).json({ message: "DB Error" });
+      
+      if (result.length === 0) {
+        return res.status(400).json({ message: "Invalid or expired coupon" });
+      }
+
+      const coupon = result[0];
+      
+      if (amount < coupon.min_amount) {
+        return res.status(400).json({ message: `Minimum order amount is ₹${coupon.min_amount}` });
+      }
+
+      let discount = (amount * coupon.discount_percent) / 100;
+      if (coupon.max_discount && discount > coupon.max_discount) {
+        discount = coupon.max_discount;
+      }
+
+      res.json({
+        valid: true,
+        discount: discount,
+        discount_percent: coupon.discount_percent,
+        message: `Coupon applied! You save ₹${discount}`
+      });
+    }
+  );
+});
+
+// --------------------------------------------
+// 3️⃣ ADMIN REGISTRATION & LOGIN
+// --------------------------------------------
+
+// Check if admin exists (for showing register or login)
+app.get("/admin/check", (req, res) => {
+  db.query("SELECT COUNT(*) as count FROM admins", (err, result) => {
+    if (err) return res.status(500).json({ message: "Database error" });
+    res.json({ adminExists: result[0].count > 0 });
+  });
+});
+
+// Register new admin (ONE TIME ONLY)
+app.post("/admin/register", (req, res) => {
+  const { username, email, country, password } = req.body;
+
+  if (!username || !email || !password) {
+    return res.status(400).json({ message: "Username, email, and password are required" });
+  }
+
+  // Check if ANY admin already exists (one-time registration)
+  db.query("SELECT COUNT(*) as count FROM admins", (err, result) => {
+    if (err) return res.status(500).json({ message: "Database error" });
+
+    if (result[0].count > 0) {
+      return res.status(400).json({ message: "Admin already registered. Only one admin allowed." });
+    }
+
+    // Insert new admin
+    db.query(
+      "INSERT INTO admins (username, email, country, password) VALUES (?, ?, ?, ?)",
+      [username, email, country || '', password],
+      (err, result) => {
+        if (err) return res.status(500).json({ message: "Registration failed" });
+        res.json({ message: "Admin registration successful", adminId: result.insertId });
+      }
+    );
+  });
+});
+
+// Login admin
+app.post("/admin/login", (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ message: "Email and password are required" });
+  }
+
+  db.query(
+    "SELECT * FROM admins WHERE email = ? AND password = ?",
+    [email, password],
+    (err, result) => {
+      if (err) return res.status(500).json({ message: "Database error" });
+
+      if (result.length === 0) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+
+      const admin = result[0];
+      res.json({
+        message: "Login successful",
+        admin: {
+          id: admin.id,
+          username: admin.username,
+          email: admin.email
+        }
+      });
+    }
+  );
+});
+
+// Forgot Password - Generate reset token and send email
+app.post("/admin/forgot-password", (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ message: "Email is required" });
+  }
+
+  db.query("SELECT * FROM admins WHERE email = ?", [email], (err, result) => {
+    if (err) return res.status(500).json({ message: "Database error" });
+
+    if (result.length === 0) {
+      return res.status(404).json({ message: "Admin with this email not found" });
+    }
+
+    // Generate a simple reset token (6 digit code)
+    const resetToken = Math.floor(100000 + Math.random() * 900000).toString();
+    const tokenExpiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+    // Save token to database
+    db.query(
+      "UPDATE admins SET reset_token = ?, token_expiry = ? WHERE email = ?",
+      [resetToken, tokenExpiry, email],
+      (err) => {
+        if (err) return res.status(500).json({ message: "Failed to generate reset token" });
+
+        // In production, send email here using nodemailer
+        // For now, we'll return the token (for testing)
+        console.log(`Password Reset Code for ${email}: ${resetToken}`);
+        
+        res.json({ 
+          message: "Password reset code sent to your email",
+          // Remove this in production - only for testing
+          resetCode: resetToken 
+        });
+      }
+    );
+  });
+});
+
+// Reset Password with token
+app.post("/admin/reset-password", (req, res) => {
+  const { email, resetCode, newPassword } = req.body;
+
+  if (!email || !resetCode || !newPassword) {
+    return res.status(400).json({ message: "Email, reset code, and new password are required" });
+  }
+
+  db.query(
+    "SELECT * FROM admins WHERE email = ? AND reset_token = ? AND token_expiry > NOW()",
+    [email, resetCode],
+    (err, result) => {
+      if (err) return res.status(500).json({ message: "Database error" });
+
+      if (result.length === 0) {
+        return res.status(400).json({ message: "Invalid or expired reset code" });
+      }
+
+      // Update password and clear token
+      db.query(
+        "UPDATE admins SET password = ?, reset_token = NULL, token_expiry = NULL WHERE email = ?",
+        [newPassword, email],
+        (err) => {
+          if (err) return res.status(500).json({ message: "Failed to reset password" });
+          res.json({ message: "Password reset successful. Please login with your new password." });
+        }
+      );
+    }
+  );
+});
+
+// --------------------------------------------
+// 4️⃣ USER REGISTRATION & LOGIN
 // --------------------------------------------
 
 // Register new user

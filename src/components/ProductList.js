@@ -11,17 +11,27 @@ function ProductList() {
   useEffect(() => {
     fetch("http://localhost:5000/products")
       .then((res) => res.json())
-      .then((data) => setProducts(data))
-      .catch(console.error);
+      .then((data) => {
+        // Make sure data is an array
+        if (Array.isArray(data)) {
+          setProducts(data);
+        } else {
+          setProducts([]);
+        }
+      })
+      .catch((err) => {
+        console.error("Error fetching products:", err);
+        setProducts([]);
+      });
   }, []);
 
-  // Filter products by search text
-  const filtered = products.filter((p) =>
-    p.title.toLowerCase().includes(search.toLowerCase())
-  );
+  // Filter products by search text (with safety check)
+  const filtered = Array.isArray(products) 
+    ? products.filter((p) => p.title.toLowerCase().includes(search.toLowerCase()))
+    : [];
 
   // Pagination logic
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE) || 1;
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (

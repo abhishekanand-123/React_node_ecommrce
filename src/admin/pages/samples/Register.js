@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 
 const Register = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -9,6 +10,39 @@ const Register = () => {
     password: '',
     agreeTerms: false
   });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [checking, setChecking] = useState(true);
+
+  // Check if admin already exists
+  useEffect(() => {
+    const checkAdmin = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/admin/check');
+        const data = await response.json();
+        
+        if (data.adminExists) {
+          alert('Admin already registered. Redirecting to login...');
+          navigate('/admin/login');
+        }
+      } catch (err) {
+        console.error('Error checking admin:', err);
+      } finally {
+        setChecking(false);
+      }
+    };
+    
+    checkAdmin();
+  }, [navigate]);
+
+  // Show loading while checking
+  if (checking) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#f2edf3' }}>
+        <h3>Checking...</h3>
+      </div>
+    );
+  }
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -16,11 +50,45 @@ const Register = () => {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
+    setError('');
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Register:', formData);
+    
+    if (!formData.agreeTerms) {
+      setError('Please agree to Terms & Conditions');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch('http://localhost:5000/admin/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: formData.username,
+          email: formData.email,
+          country: formData.country,
+          password: formData.password
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert('Admin registration successful! Please login.');
+        navigate('/admin/login');
+      } else {
+        setError(data.message || 'Registration failed');
+      }
+    } catch (err) {
+      setError('Server error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -38,6 +106,8 @@ const Register = () => {
         </h6>
 
         <form onSubmit={handleSubmit}>
+          {error && <div className="auth-error">{error}</div>}
+          
           <div className="auth-form-group">
             <input
               type="text"
@@ -104,8 +174,8 @@ const Register = () => {
             </label>
           </div>
 
-          <button type="submit" className="auth-btn">
-            SIGN UP
+          <button type="submit" className="auth-btn" disabled={loading}>
+            {loading ? 'SIGNING UP...' : 'SIGN UP'}
           </button>
 
           <div className="auth-footer">
@@ -241,6 +311,19 @@ const Register = () => {
         }
         .text-primary {
           color: #9a55ff !important;
+        }
+        .auth-error {
+          background: #ffe0e0;
+          color: #d32f2f;
+          padding: 12px;
+          border-radius: 4px;
+          margin-bottom: 20px;
+          font-size: 14px;
+          text-align: center;
+        }
+        .auth-btn:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
         }
       `}</style>
     </div>

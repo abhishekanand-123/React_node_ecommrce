@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import "./CartPage.css";
 import { useNavigate } from "react-router-dom";
 
@@ -10,14 +10,24 @@ function CartPage() {
   const userId = localStorage.getItem('user_id');
 
   // Get Cart Items
-  const loadCart = async () => {
+  const loadCart = useCallback(async () => {
     if (!userId) {
       return;
     }
-    const res = await fetch(`http://localhost:5000/cart/${userId}`);
-    const data = await res.json();
-    setItems(data);
-  };
+    try {
+      const res = await fetch(`http://localhost:5000/cart/${userId}`);
+      const data = await res.json();
+      // Make sure data is an array before setting
+      if (Array.isArray(data)) {
+        setItems(data);
+      } else {
+        setItems([]);
+      }
+    } catch (error) {
+      console.error('Error loading cart:', error);
+      setItems([]);
+    }
+  }, [userId]);
 
   useEffect(() => {
     // Check if user is logged in
@@ -28,7 +38,7 @@ function CartPage() {
       return;
     }
     loadCart();
-  }, [userId, navigate]);
+  }, [userId, navigate, loadCart]);
 
   // Update Quantity
   const updateQty = async (cart_id, currentQty, type) => {
@@ -54,14 +64,13 @@ function CartPage() {
       method: "DELETE",
     });
 
-    setItems(items.filter((item) => item.cart_id !== cart_id));
+    setItems(prevItems => prevItems.filter((item) => item.cart_id !== cart_id));
   };
 
   // Total Price Calculation
-  const totalAmount = items.reduce(
-    (sum, item) => sum + item.price * item.qty,
-    0
-  );
+  const totalAmount = Array.isArray(items) 
+    ? items.reduce((sum, item) => sum + item.price * item.qty, 0)
+    : 0;
 
   // Checkout Page Navigation
   const handleCheckout = () => {

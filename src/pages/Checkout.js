@@ -154,15 +154,25 @@
 
 
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./Checkout.css";
 
 function Checkout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const totalAmount = location.state?.totalAmount || 0;
+  const totalAmount = Number(location.state?.totalAmount) || 0;
   const userId = localStorage.getItem('user_id');
+
+  // Coupon states
+  const [couponCode, setCouponCode] = useState('');
+  const [discount, setDiscount] = useState(0);
+  const [couponApplied, setCouponApplied] = useState(false);
+  const [couponMessage, setCouponMessage] = useState('');
+  const [couponError, setCouponError] = useState('');
+
+  // Final amount after discount - ensure both are numbers
+  const finalAmount = Number(totalAmount) - Number(discount);
 
   useEffect(() => {
     // Check if user is logged in
@@ -172,6 +182,49 @@ function Checkout() {
       navigate('/login');
     }
   }, [userId, navigate]);
+
+  // Apply coupon
+  const applyCoupon = async () => {
+    if (!couponCode.trim()) {
+      setCouponError('Please enter a coupon code');
+      return;
+    }
+
+    setCouponError('');
+    setCouponMessage('');
+
+    try {
+      const response = await fetch('http://localhost:5000/coupons/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: couponCode, amount: Number(totalAmount) })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setDiscount(Number(data.discount) || 0);
+        setCouponApplied(true);
+        setCouponMessage(data.message);
+        setCouponError('');
+      } else {
+        setCouponError(data.message);
+        setDiscount(0);
+        setCouponApplied(false);
+      }
+    } catch (error) {
+      setCouponError('Failed to validate coupon');
+    }
+  };
+
+  // Remove coupon
+  const removeCoupon = () => {
+    setCouponCode('');
+    setDiscount(0);
+    setCouponApplied(false);
+    setCouponMessage('');
+    setCouponError('');
+  };
 
   const handleStripePayment = async () => {
     if (!userId) {
@@ -186,7 +239,7 @@ function Checkout() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ amount: totalAmount, user_id: userId }),
+          body: JSON.stringify({ amount: Number(finalAmount), user_id: userId }),
         }
       );
 
@@ -205,14 +258,62 @@ function Checkout() {
   return (
     <div className="checkout-container">
       <h2>Checkout</h2>
-      <h3>Total Payable: ₹{totalAmount}</h3>
+      
+      {/* Order Summary */}
+      <div className="order-summary">
+        <div className="summary-row">
+          <span>Subtotal:</span>
+          <span>₹{Number(totalAmount).toFixed(2)}</span>
+        </div>
+
+        {/* Coupon Section */}
+        <div className="coupon-section">
+          <h4>Have a coupon?</h4>
+          {!couponApplied ? (
+            <div className="coupon-input-group">
+              <input
+                type="text"
+                placeholder="Enter coupon code"
+                value={couponCode}
+                onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                className="coupon-input"
+              />
+              <button onClick={applyCoupon} className="apply-btn">
+                Apply
+              </button>
+            </div>
+          ) : (
+            <div className="coupon-applied">
+              <span className="coupon-tag">
+                🎉 {couponCode} applied!
+                <button onClick={removeCoupon} className="remove-coupon">×</button>
+              </span>
+            </div>
+          )}
+          {couponError && <p className="coupon-error">{couponError}</p>}
+          {couponMessage && <p className="coupon-success">{couponMessage}</p>}
+        </div>
+
+        {/* Discount Row */}
+        {Number(discount) > 0 && (
+          <div className="summary-row discount-row">
+            <span>Discount:</span>
+            <span className="discount-amount">- ₹{Number(discount).toFixed(2)}</span>
+          </div>
+        )}
+
+        {/* Total */}
+        <div className="summary-row total-row">
+          <span>Total Payable:</span>
+          <span className="total-amount">₹{Number(finalAmount).toFixed(2)}</span>
+        </div>
+      </div>
 
       <button
         className="place-order-btn"
-        style={{ background: "black", color: "white", marginTop: "20px" }}
         onClick={handleStripePayment}
       >
-        Pay with Stripe
+        Pay ₹{Number(finalAmount).toFixed(2)} with Stripe
       </button>
     </div>
   );

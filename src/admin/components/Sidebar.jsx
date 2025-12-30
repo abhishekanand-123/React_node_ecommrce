@@ -44,6 +44,22 @@ const Sidebar = () => {
           </Link>
         </li>
 
+        {/* Product Management */}
+        <li className={`nav-item ${isActive('/admin/products') ? 'active' : ''}`}>
+          <Link className="nav-link" to="/admin/products">
+            <span className="menu-icon"><i className="mdi mdi-package-variant"></i></span>
+            <span className="menu-title">Products</span>
+          </Link>
+        </li>
+
+        {/* Coupon Management */}
+        <li className={`nav-item ${isActive('/admin/coupons') ? 'active' : ''}`}>
+          <Link className="nav-link" to="/admin/coupons">
+            <span className="menu-icon"><i className="mdi mdi-ticket-percent"></i></span>
+            <span className="menu-title">Coupons</span>
+          </Link>
+        </li>
+
         {/* Basic UI Elements */}
         <li className={`nav-item ${isMenuActive(['/admin/buttons', '/admin/dropdowns', '/admin/typography']) ? 'active' : ''}`}>
           <a 

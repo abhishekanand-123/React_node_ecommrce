@@ -33,6 +33,9 @@ import BasicTables from "./admin/pages/tables/BasicTables";
 import FontAwesome from "./admin/pages/icons/FontAwesome";
 import AdminLogin from "./admin/pages/samples/Login";
 import AdminRegister from "./admin/pages/samples/Register";
+import AdminForgotPassword from "./admin/pages/samples/ForgotPassword";
+import ProductManagement from "./admin/pages/products/ProductManagement";
+import CouponManagement from "./admin/pages/coupons/CouponManagement";
 
 import "./App.css";
 
@@ -43,10 +46,13 @@ function App() {
         {/* Admin Auth Routes (Standalone - No Sidebar) */}
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin/register" element={<AdminRegister />} />
+        <Route path="/admin/forgot-password" element={<AdminForgotPassword />} />
 
         {/* Admin Routes (With Layout) */}
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Dashboard />} />
+          <Route path="products" element={<ProductManagement />} />
+          <Route path="coupons" element={<CouponManagement />} />
           <Route path="buttons" element={<Buttons />} />
           <Route path="dropdowns" element={<Dropdowns />} />
           <Route path="typography" element={<Typography />} />

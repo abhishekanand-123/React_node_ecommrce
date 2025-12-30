@@ -1,11 +1,35 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 
 const Login = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [adminExists, setAdminExists] = useState(true); // Default true to hide register link
+
+  // Check if admin exists
+  useEffect(() => {
+    const checkAdmin = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/admin/check');
+        const data = await response.json();
+        setAdminExists(data.adminExists);
+        
+        // If no admin exists, redirect to register
+        if (!data.adminExists) {
+          navigate('/admin/register');
+        }
+      } catch (err) {
+        console.error('Error checking admin:', err);
+      }
+    };
+    
+    checkAdmin();
+  }, [navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -13,11 +37,37 @@ const Login = () => {
       ...prev,
       [name]: value
     }));
+    setError('');
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Login:', formData);
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch('http://localhost:5000/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Store admin info in localStorage
+        localStorage.setItem('admin', JSON.stringify(data.admin));
+        localStorage.setItem('admin_id', data.admin.id);
+        alert('Admin login successful!');
+        navigate('/admin');
+      } else {
+        setError(data.message || 'Login failed');
+      }
+    } catch (err) {
+      setError('Server error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -34,12 +84,14 @@ const Login = () => {
         </h6>
 
         <form onSubmit={handleSubmit}>
+          {error && <div className="auth-error">{error}</div>}
+          
           <div className="auth-form-group">
             <input
               type="email"
               name="email"
               className="auth-input"
-              placeholder="Username"
+              placeholder="Email"
               value={formData.email}
               onChange={handleChange}
               required
@@ -58,8 +110,8 @@ const Login = () => {
             />
           </div>
 
-          <button type="submit" className="auth-btn">
-            SIGN IN
+          <button type="submit" className="auth-btn" disabled={loading}>
+            {loading ? 'SIGNING IN...' : 'SIGN IN'}
           </button>
 
           <div className="auth-links">
@@ -67,12 +119,14 @@ const Login = () => {
               <input type="checkbox" id="remember" />
               <label htmlFor="remember">Keep me signed in</label>
             </div>
-            <a href="#" className="auth-forgot">Forgot password?</a>
+            <Link to="/admin/forgot-password" className="auth-forgot">Forgot password?</Link>
           </div>
 
-          <div className="auth-footer">
-            Don't have an account? <Link to="/admin/register" className="text-primary">Create</Link>
-          </div>
+          {!adminExists && (
+            <div className="auth-footer">
+              Don't have an account? <Link to="/admin/register" className="text-primary">Create</Link>
+            </div>
+          )}
         </form>
       </div>
 
@@ -200,6 +254,19 @@ const Login = () => {
         }
         .text-primary {
           color: #9a55ff !important;
+        }
+        .auth-error {
+          background: #ffe0e0;
+          color: #d32f2f;
+          padding: 12px;
+          border-radius: 4px;
+          margin-bottom: 20px;
+          font-size: 14px;
+          text-align: center;
+        }
+        .auth-btn:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
         }
       `}</style>
     </div>
