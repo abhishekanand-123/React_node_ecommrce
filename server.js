@@ -198,7 +198,7 @@ app.post("/products", upload.single("image"), (req, res) => {
 });
 
 // --------------------------------------------
-// 3️⃣ USER REGISTRATION & LOGIN
+// 3️⃣ USER REGISTRATION & LOGIN of  gi 2
 // --------------------------------------------
 
 // Register new user
