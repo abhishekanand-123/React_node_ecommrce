@@ -198,7 +198,71 @@ app.post("/products", upload.single("image"), (req, res) => {
 });
 
 // --------------------------------------------
-// 3️⃣ CART SYSTEM
+// 3️⃣ USER REGISTRATION & LOGIN
+// --------------------------------------------
+
+// Register new user
+app.post("/register", (req, res) => {
+  const { username, email, country, password } = req.body;
+
+  if (!username || !email || !password) {
+    return res.status(400).json({ message: "Username, email, and password are required" });
+  }
+
+  // Check if user already exists
+  db.query("SELECT * FROM users WHERE email = ?", [email], (err, result) => {
+    if (err) return res.status(500).json({ message: "Database error" });
+
+    if (result.length > 0) {
+      return res.status(400).json({ message: "Email already registered" });
+    }
+
+    // Insert new user
+    db.query(
+      "INSERT INTO users (username, email, country, password) VALUES (?, ?, ?, ?)",
+      [username, email, country || '', password],
+      (err, result) => {
+        if (err) return res.status(500).json({ message: "Registration failed" });
+        res.json({ message: "Registration successful", userId: result.insertId });
+      }
+    );
+  });
+});
+
+// Login user
+app.post("/login", (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ message: "Email and password are required" });
+  }
+
+  db.query(
+    "SELECT * FROM users WHERE email = ? AND password = ?",
+    [email, password],
+    (err, result) => {
+      if (err) return res.status(500).json({ message: "Database error" });
+
+      if (result.length === 0) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+
+      const user = result[0];
+      res.json({
+        message: "Login successful",
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          country: user.country
+        }
+      });
+    }
+  );
+});
+
+// --------------------------------------------
+// 4️⃣ CART SYSTEM
 // --------------------------------------------
 
 // Add to cart

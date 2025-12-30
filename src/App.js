@@ -15,6 +15,8 @@ import ThankYou from "./pages/ThankYou";
 // Ecommerce Pages
 import ProductList from "./components/ProductList";
 import ProductDetail from "./pages/ProductDetail";
+import LoginUser from "./pages/Login_user";
+import RegisterUser from "./pages/Register_user";
 import CartPage from "./pages/CartPage";
 import ViewProducts from "./pages/ViewProducts";
 import OrderPage from "./pages/OrderPage";
@@ -29,8 +31,8 @@ import FormElements from "./admin/pages/forms/FormElements";
 import ChartJs from "./admin/pages/charts/ChartJs";
 import BasicTables from "./admin/pages/tables/BasicTables";
 import FontAwesome from "./admin/pages/icons/FontAwesome";
-import Login from "./admin/pages/samples/Login";
-import Register from "./admin/pages/samples/Register";
+import AdminLogin from "./admin/pages/samples/Login";
+import AdminRegister from "./admin/pages/samples/Register";
 
 import "./App.css";
 
@@ -39,8 +41,8 @@ function App() {
     <Router>
       <Routes>
         {/* Admin Auth Routes (Standalone - No Sidebar) */}
-        <Route path="/admin/login" element={<Login />} />
-        <Route path="/admin/register" element={<Register />} />
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin/register" element={<AdminRegister />} />
 
         {/* Admin Routes (With Layout) */}
         <Route path="/admin" element={<AdminLayout />}>
@@ -63,16 +65,18 @@ function App() {
               <main className="content">
                 <Routes>
                   <Route path="/" element={<Home />} />
-                  <Route path="/about" element={<About />} />
-                  <Route path="/services" element={<Services />} />
-                  <Route path="/contact" element={<Contact />} />
-                  <Route path="/checkout" element={<Checkout />} />
-                  <Route path="/thank-you" element={<ThankYou />} />
-                  <Route path="/products" element={<ProductList />} />
-                  <Route path="/product/:id" element={<ProductDetail />} />
-                  <Route path="/view-products" element={<ViewProducts />} />
-                  <Route path="/cart" element={<CartPage />} />
-                  <Route path="/orders" element={<OrderPage />} />
+                  <Route path="about" element={<About />} />
+                  <Route path="services" element={<Services />} />
+                  <Route path="contact" element={<Contact />} />
+                  <Route path="login" element={<LoginUser />} />
+                  <Route path="register" element={<RegisterUser />} />
+                  <Route path="checkout" element={<Checkout />} />
+                  <Route path="thank-you" element={<ThankYou />} />
+                  <Route path="products" element={<ProductList />} />
+                  <Route path="product/:id" element={<ProductDetail />} />
+                  <Route path="view-products" element={<ViewProducts />} />
+                  <Route path="cart" element={<CartPage />} />
+                  <Route path="orders" element={<OrderPage />} />
                 </Routes>
               </main>
               <Footer />
