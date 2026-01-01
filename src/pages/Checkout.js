@@ -197,7 +197,7 @@ function Checkout() {
       const response = await fetch('http://localhost:5000/coupons/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: couponCode, amount: Number(totalAmount) })
+        body: JSON.stringify({ code: couponCode, amount: Number(totalAmount), user_id: userId })
       });
 
       const data = await response.json();

@@ -10,12 +10,27 @@ function ThankYou() {
 
   useEffect(() => {
     async function fetchData() {
-      // 1️⃣ Save transaction
+      // Get user_id from localStorage
+      const userId = localStorage.getItem('user_id');
+      
+      if (!userId) {
+        alert('User not found. Please login again.');
+        window.location.href = '/login';
+        return;
+      }
+
+      // 1️⃣ Save transaction (this also clears the cart on server)
       const saveRes = await fetch("http://localhost:5000/save-transaction", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ session_id: sessionId, user_id: 1 }),
+        body: JSON.stringify({ session_id: sessionId, user_id: userId }),
       });
+
+      if (!saveRes.ok) {
+        const errorData = await saveRes.json();
+        alert('Error saving transaction: ' + (errorData.error || 'Unknown error'));
+        return;
+      }
 
       const saveData = await saveRes.json();
 
@@ -26,9 +41,14 @@ function ThankYou() {
 
       const details = await detailsRes.json();
       setData(details);
+
+      // 3️⃣ Dispatch event to refresh cart on other pages
+      window.dispatchEvent(new Event('cartUpdated'));
     }
 
-    fetchData();
+    if (sessionId) {
+      fetchData();
+    }
   }, [sessionId]);
 
   if (!data) return <h3>Loading payment details...</h3>;

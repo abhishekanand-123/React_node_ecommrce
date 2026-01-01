@@ -241,7 +241,7 @@ app.get("/coupons", (req, res) => {
 
 // Add new coupon
 app.post("/coupons", (req, res) => {
-  const { code, discount_percent, min_amount, max_discount, expiry_date, is_active } = req.body;
+  const { code, discount_amount, min_amount, expiry_date, is_active } = req.body;
 
   // Check if coupon code already exists
   db.query("SELECT * FROM coupons WHERE code = ?", [code.toUpperCase()], (err, result) => {
@@ -252,8 +252,8 @@ app.post("/coupons", (req, res) => {
     }
 
     db.query(
-      "INSERT INTO coupons (code, discount_percent, min_amount, max_discount, expiry_date, is_active) VALUES (?, ?, ?, ?, ?, ?)",
-      [code.toUpperCase(), discount_percent, min_amount || 0, max_discount || null, expiry_date || null, is_active ? 1 : 0],
+      "INSERT INTO coupons (code, discount_amount, min_amount, expiry_date, is_active) VALUES (?, ?, ?, ?, ?)",
+      [code.toUpperCase(), discount_amount || 0, min_amount || 0, expiry_date || null, is_active ? 1 : 0],
       (err, result) => {
         if (err) return res.status(500).json({ message: "DB Error" });
         res.json({ message: "Coupon Added", couponId: result.insertId });
@@ -265,13 +265,27 @@ app.post("/coupons", (req, res) => {
 // Update coupon
 app.put("/coupons/:id", (req, res) => {
   const { id } = req.params;
-  const { code, discount_percent, min_amount, max_discount, expiry_date, is_active } = req.body;
+  const { code, discount_amount, min_amount, expiry_date, is_active } = req.body;
+
+  // Validate required fields
+  if (!code) {
+    return res.status(400).json({ message: "Coupon code is required" });
+  }
+
+  // Handle empty expiry_date string
+  const expiryDateValue = (expiry_date && expiry_date.trim() !== '') ? expiry_date : null;
 
   db.query(
-    "UPDATE coupons SET code = ?, discount_percent = ?, min_amount = ?, max_discount = ?, expiry_date = ?, is_active = ? WHERE id = ?",
-    [code.toUpperCase(), discount_percent, min_amount || 0, max_discount || null, expiry_date || null, is_active ? 1 : 0, id],
+    "UPDATE coupons SET code = ?, discount_amount = ?, min_amount = ?, expiry_date = ?, is_active = ? WHERE id = ?",
+    [code.toUpperCase(), discount_amount || 0, min_amount || 0, expiryDateValue, is_active ? 1 : 0, id],
     (err, result) => {
-      if (err) return res.status(500).json({ message: "DB Error" });
+      if (err) {
+        console.error("Update coupon error:", err);
+        return res.status(500).json({ message: "DB Error: " + err.message });
+      }
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ message: "Coupon not found" });
+      }
       res.json({ message: "Coupon Updated" });
     }
   );
@@ -297,8 +311,13 @@ app.delete("/coupons/:id", (req, res) => {
 
 // Validate coupon (for checkout)
 app.post("/coupons/validate", (req, res) => {
-  const { code, amount } = req.body;
+  const { code, amount, user_id } = req.body;
 
+  if (!user_id) {
+    return res.status(400).json({ message: "User ID is required" });
+  }
+
+  // First, check if coupon exists and is valid
   db.query(
     "SELECT * FROM coupons WHERE code = ? AND is_active = 1 AND (expiry_date IS NULL OR expiry_date >= CURDATE())",
     [code.toUpperCase()],
@@ -311,21 +330,44 @@ app.post("/coupons/validate", (req, res) => {
 
       const coupon = result[0];
       
+      // Check minimum order amount
       if (amount < coupon.min_amount) {
         return res.status(400).json({ message: `Minimum order amount is ₹${coupon.min_amount}` });
       }
 
-      let discount = (amount * coupon.discount_percent) / 100;
-      if (coupon.max_discount && discount > coupon.max_discount) {
-        discount = coupon.max_discount;
-      }
+      // Check if user has already used this coupon
+      db.query(
+        "SELECT * FROM coupon_usage WHERE user_id = ? AND coupon_id = ?",
+        [user_id, coupon.id],
+        (err2, usageResult) => {
+          if (err2) return res.status(500).json({ message: "DB Error" });
 
-      res.json({
-        valid: true,
-        discount: discount,
-        discount_percent: coupon.discount_percent,
-        message: `Coupon applied! You save ₹${discount}`
-      });
+          if (usageResult.length > 0) {
+            return res.status(400).json({ message: "Coupon already used" });
+          }
+
+          // Use fixed rupee discount amount
+          const discount = Number(coupon.discount_amount) || 0;
+
+          // Record coupon usage
+          db.query(
+            "INSERT INTO coupon_usage (user_id, coupon_id) VALUES (?, ?)",
+            [user_id, coupon.id],
+            (err3) => {
+              if (err3) {
+                console.error("Error recording coupon usage:", err3);
+                // Continue even if recording fails, but log the error
+              }
+
+              res.json({
+                valid: true,
+                discount: discount,
+                message: `Coupon applied! You save ₹${discount}`
+              });
+            }
+          );
+        }
+      );
     }
   );
 });

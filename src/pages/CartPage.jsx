@@ -40,6 +40,25 @@ function CartPage() {
     loadCart();
   }, [userId, navigate, loadCart]);
 
+  // Listen for cart update events (e.g., after payment)
+  useEffect(() => {
+    const handleCartUpdate = () => {
+      loadCart();
+    };
+
+    window.addEventListener('cartUpdated', handleCartUpdate);
+    // Also refresh when page becomes visible (user returns from payment)
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && userId) {
+        loadCart();
+      }
+    });
+
+    return () => {
+      window.removeEventListener('cartUpdated', handleCartUpdate);
+    };
+  }, [loadCart, userId]);
+
   // Update Quantity
   const updateQty = async (cart_id, currentQty, type) => {
     let newQty = type === "inc" ? currentQty + 1 : currentQty - 1;

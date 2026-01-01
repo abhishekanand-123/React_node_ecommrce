@@ -7,9 +7,8 @@ const CouponManagement = () => {
   const [editingCoupon, setEditingCoupon] = useState(null);
   const [formData, setFormData] = useState({
     code: '',
-    discount_percent: '',
+    discount_amount: '',
     min_amount: '',
-    max_discount: '',
     expiry_date: '',
     is_active: true
   });
@@ -47,10 +46,17 @@ const CouponManagement = () => {
     e.preventDefault();
     
     try {
+      // Convert string values to numbers for numeric fields
+      const dataToSend = {
+        ...formData,
+        discount_amount: Number(formData.discount_amount) || 0,
+        min_amount: Number(formData.min_amount) || 0
+      };
+
       const res = await fetch('http://localhost:5000/coupons', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(dataToSend)
       });
       
       if (res.ok) {
@@ -73,10 +79,17 @@ const CouponManagement = () => {
     e.preventDefault();
     
     try {
+      // Convert string values to numbers for numeric fields
+      const dataToSend = {
+        ...formData,
+        discount_amount: Number(formData.discount_amount) || 0,
+        min_amount: Number(formData.min_amount) || 0
+      };
+
       const res = await fetch(`http://localhost:5000/coupons/${editingCoupon.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(dataToSend)
       });
       
       if (res.ok) {
@@ -85,6 +98,9 @@ const CouponManagement = () => {
         setEditingCoupon(null);
         resetForm();
         fetchCoupons();
+      } else {
+        const data = await res.json();
+        alert(data.message || 'Failed to update coupon');
       }
     } catch (error) {
       console.error('Error updating coupon:', error);
@@ -130,9 +146,8 @@ const CouponManagement = () => {
   const resetForm = () => {
     setFormData({
       code: '',
-      discount_percent: '',
+      discount_amount: '',
       min_amount: '',
-      max_discount: '',
       expiry_date: '',
       is_active: true
     });
@@ -143,9 +158,8 @@ const CouponManagement = () => {
     setEditingCoupon(coupon);
     setFormData({
       code: coupon.code,
-      discount_percent: coupon.discount_percent,
+      discount_amount: coupon.discount_amount || '',
       min_amount: coupon.min_amount || '',
-      max_discount: coupon.max_discount || '',
       expiry_date: coupon.expiry_date ? coupon.expiry_date.split('T')[0] : '',
       is_active: coupon.is_active
     });
@@ -179,9 +193,8 @@ const CouponManagement = () => {
               <thead>
                 <tr>
                   <th>Code</th>
-                  <th>Discount %</th>
+                  <th>Discount (₹)</th>
                   <th>Min Amount</th>
-                  <th>Max Discount</th>
                   <th>Expiry Date</th>
                   <th>Status</th>
                   <th>Actions</th>
@@ -190,15 +203,14 @@ const CouponManagement = () => {
               <tbody>
                 {coupons.length === 0 ? (
                   <tr>
-                    <td colSpan="7" style={{ textAlign: 'center' }}>No coupons found</td>
+                    <td colSpan="6" style={{ textAlign: 'center' }}>No coupons found</td>
                   </tr>
                 ) : (
                   coupons.map(coupon => (
                     <tr key={coupon.id}>
                       <td><strong>{coupon.code}</strong></td>
-                      <td>{coupon.discount_percent}%</td>
+                      <td>₹{coupon.discount_amount || 0}</td>
                       <td>₹{coupon.min_amount || 0}</td>
-                      <td>₹{coupon.max_discount || 'No limit'}</td>
                       <td>{coupon.expiry_date ? new Date(coupon.expiry_date).toLocaleDateString() : 'No expiry'}</td>
                       <td>
                         <span 
@@ -255,17 +267,18 @@ const CouponManagement = () => {
                 />
               </div>
               <div className="form-group">
-                <label>Discount Percentage (%)</label>
+                <label>Discount Amount (₹)</label>
                 <input
                   type="number"
-                  name="discount_percent"
+                  name="discount_amount"
                   className="form-control"
-                  value={formData.discount_percent}
+                  value={formData.discount_amount}
                   onChange={handleChange}
                   min="1"
-                  max="100"
+                  step="0.01"
                   required
                 />
+                <small style={{ color: '#666', fontSize: '12px' }}>Fixed rupee discount amount</small>
               </div>
               <div className="form-group">
                 <label>Minimum Order Amount (₹)</label>
@@ -276,17 +289,6 @@ const CouponManagement = () => {
                   value={formData.min_amount}
                   onChange={handleChange}
                   placeholder="0 for no minimum"
-                />
-              </div>
-              <div className="form-group">
-                <label>Maximum Discount (₹)</label>
-                <input
-                  type="number"
-                  name="max_discount"
-                  className="form-control"
-                  value={formData.max_discount}
-                  onChange={handleChange}
-                  placeholder="Leave empty for no limit"
                 />
               </div>
               <div className="form-group">
@@ -493,4 +495,11 @@ const CouponManagement = () => {
 };
 
 export default CouponManagement;
+
+
+
+
+
+
+
 
